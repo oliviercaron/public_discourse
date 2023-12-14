@@ -1,0 +1,71 @@
+---
+title: "French public discourse collection"
+title-block-banner: true
+subtitle: "Scrap eveything"
+author:
+  - name: Olivier Caron
+    email: olivier.caron@dauphine.psl.eu
+    affiliations: 
+      name: "Paris Dauphine - PSL"
+      city: Paris
+      state: France
+date : "14/12/2023"
+toc: true
+number-sections: true
+number-depth: 10
+format:
+  html:
+    theme:
+      light: litera
+      #dark: darkly
+    code-fold: true
+    code-summary: "Display code"
+    code-tools: true #enables to display/hide all blocks of code
+    code-copy: true #enables to copy code
+    grid:
+      body-width: 1000px
+      margin-width: 100px
+    toc: true
+    toc-title: "Table of content"
+    toc-location: left
+execute:
+  echo: true
+  warning: false
+  message: false
+editor: visual
+fig-align: "center"
+highlight-style: ayu
+reference-location: margin
+---
+
+```{r}
+#| label: data-libraries
+#| echo: false
+#| eval: true
+
+library(tidyverse)
+library(rvest)
+library(lubridate)
+library(RSelenium)
+library(reticulate)
+```
+
+## French public discourse collection
+
+### What is it ?
+
+La Collection des discours publics, which translates to "The Collection of Public Speeches" in English, gathers more than 160,000 speeches delivered by key figures in French public life. This includes speeches by the President of the Republic since 1974, the Prime Minister and government members since the early 1980s, and communiqués from the Council of Ministers since 1974, among others.
+
+[Link to website](https://www.vie-publique.fr/discours?page=0 "French public discourse")
+
+## Let's scrap everything
+
+```{r}
+#| label: scrapping
+
+
+df1 <- read.csv("data/csv_page/csv_page_0.csv")
+df2 <- read.csv("data/csv_page/csv_page_1.csv")
+```
+
+
