@@ -70,8 +70,27 @@ La Collection des discours publics, which translates to "The Collection of Publi
 #| label: gather-data
 
 
-df1 <- read.csv("data/csv_page/csv_page_0.csv")
-df2 <- read.csv("data/csv_page/csv_page_1999.csv")
+df1 <- read.csv("data/csv_page/csv_page_10002.csv")
+dfverif <- read.csv("data/csv_page/csv_page_10002.csv")
+df10003 <- read.csv("data/csv_page/csv_page_10003.csv")
+df2 <- read.csv("data/combined_data_VF.csv")
+df_combined <- read.csv("data/combined_data_VF2.csv")
+
+df_no_date <- df2 %>% 
+  filter(date == "" | is.na(date)) %>%
+  select(page_number) %>%
+  distinct() %>>
+  as.vector()
+
+df_no_date2 <- df_combined %>% 
+  filter(date == "" | is.na(date)) %>%
+  select(page_number) %>%
+  distinct()
+#write vector to txt file
+write.table(df_no_date, "data/df_no_date.txt", row.names = FALSE, col.names = FALSE)
+write.table(df_no_date2, "data/df_no_date2.txt", row.names = FALSE, col.names = FALSE)
+
+
 ```
 
 ```{python}
@@ -114,15 +133,25 @@ combined_dataframe = combine_csv_files(folder_path)
 ```{r}
 #| label: gather-data-r
 
-list_of_csv_files <- list.files("data/csv_page")
+# Lister tous les fichiers CSV dans le répertoire spécifié
+list_of_csv_files <- list.files("data/csv_page") %>% sort()
+list_of_csv_files[1:5]
 
-#check if every csv file exists by looping through the list of files
-for (i in list_of_csv_files) {
-  file_path <- file.path("data/csv_page", i)
+# Parcourir chaque fichier dans la liste
+for (file in list_of_csv_files) {
+  file_path <- file.path("data/csv_page", file)
   if (!file.exists(file_path)) {
-    print(paste(file_path, "n'existe pas"))
+    print(paste(file_path, "does not exist"))
   }
 }
 
+```
 
+```{python}
+
+if (file.exists("data/csv_page/csv_page_10004.csv")) {
+  print("does exist")
+} else {
+  print("does not exist")
+}
 ```
