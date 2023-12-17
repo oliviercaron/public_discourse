@@ -41,19 +41,12 @@ reference-location: margin
 ```{r}
 #| label: data-libraries-r
 #| echo: false
+#| message: false
 #| eval: true
 
 library(tidyverse)
 library(data.table)
-```
-
-```{python}
-#| label: data-libraries-python
-#| echo: false
-#| eval: true
-import polars as pl
-import glob
-import os
+library(microbenchmark)
 ```
 
 ## French public discourse collection
@@ -66,11 +59,7 @@ La Collection des discours publics, which translates to "The Collection of Publi
 
 ## Verify missing dates
 ```{r}
-#| label: gather-data
-
-df1 <- read.csv("data/csv_page/csv_page_9057.csv")
-dftest <- read.csv("data/csv_page/csv_page_9057.csv")
-df_combined <- read.csv("data/combined_data_VF2.csv")
+#| label: verify-missing-dates
 
 df_no_date2 <- df_combined %>% 
   filter(date == "" | is.na(date)) %>%
@@ -80,41 +69,53 @@ df_no_date2 <- df_combined %>%
 #write vector to txt file
 write.table(df_no_date2, "data/df_no_date2.txt", row.names = FALSE, col.names = FALSE)
 
+```
+
+## Verify missing texts
+
+```{r}
+#| label: verify-missing-texts
+
+df_no_text <- df_combined %>% 
+  filter(text == "" | is.na(text)) %>%
+  select(page_number) %>%
+  distinct()
+
+#write vector to txt file
+write.table(df_no_text, "data/df_no_text.txt", row.names = FALSE, col.names = FALSE)
+
 
 ```
 
-## Verify missing dates
+## Quick benchmark
 
-```{python}
-#| label: retrieve-dates
-
-df1 = r.df1
-
-import dateparser
-import re
-
-def preprocess_date(text):
-    # Remplace "1er" par "1" pour faciliter l'analyse
-    text = re.sub(r'1er', '1', text)
-    return text
-
-def extract_date(title):
-    title = preprocess_date(title)
-    date = dateparser.parse(title, languages=['fr'])
-    return date.strftime("%Y-%m-%d") if date else None
-
-df1['date'] = df1['title'].apply(extract_date)
-
-print(test_date)
-
-processed_df = df1['title'].apply(preprocess_date)
-print(processed_df)
-
-title = " 1er mars 2017 "
-date = dateparser.parse(title, languages=['fr'])
+```{r}
+#| label: quick-benchmark
 
 
+benchmark_results <- microbenchmark(
+  df_combined <- fread("data/combined_data_VF2.csv"),
+  df_combined <- fread("data/combined_data_VF2.csv", nThread = 6),
+  times = 5
+)
 
+autoplot(benchmark_results)
+```
+
+
+```{r}
+#| label: quick-benchmark2
+
+#| label: quick-benchmark
+
+
+benchmark_results <- microbenchmark(
+  df_combined <- read_csv("data/combined_data_VF2.csv"),
+  df_combined <- fread("data/combined_data_VF2.csv", nThread = 12),
+  times = 5
+)
+
+autoplot(benchmark_results)
 ```
 
 
