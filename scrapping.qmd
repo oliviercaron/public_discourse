@@ -68,6 +68,8 @@ La Collection des discours publics, which translates to "The Collection of Publi
 ```{r}
 #| label: gather-data
 
+df1 <- read.csv("data/csv_page/csv_page_9057.csv")
+dftest <- read.csv("data/csv_page/csv_page_9057.csv")
 df_combined <- read.csv("data/combined_data_VF2.csv")
 
 df_no_date2 <- df_combined %>% 
@@ -80,5 +82,40 @@ write.table(df_no_date2, "data/df_no_date2.txt", row.names = FALSE, col.names = 
 
 
 ```
+
+## Verify missing dates
+
+```{python}
+#| label: retrieve-dates
+
+df1 = r.df1
+
+import dateparser
+import re
+
+def preprocess_date(text):
+    # Remplace "1er" par "1" pour faciliter l'analyse
+    text = re.sub(r'1er', '1', text)
+    return text
+
+def extract_date(title):
+    title = preprocess_date(title)
+    date = dateparser.parse(title, languages=['fr'])
+    return date.strftime("%Y-%m-%d") if date else None
+
+df1['date'] = df1['title'].apply(extract_date)
+
+print(test_date)
+
+processed_df = df1['title'].apply(preprocess_date)
+print(processed_df)
+
+title = " 1er mars 2017 "
+date = dateparser.parse(title, languages=['fr'])
+
+
+
+```
+
 
 
