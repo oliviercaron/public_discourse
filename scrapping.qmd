@@ -64,94 +64,21 @@ La Collection des discours publics, which translates to "The Collection of Publi
 
 [Link to website](https://www.vie-publique.fr/discours?page=0 "French public discourse")
 
-## Gather every data
-
+## Verify missing dates
 ```{r}
 #| label: gather-data
 
-
-df1 <- read.csv("data/csv_page/csv_page_10002.csv")
-dfverif <- read.csv("data/csv_page/csv_page_10002.csv")
-df10003 <- read.csv("data/csv_page/csv_page_10003.csv")
-df2 <- read.csv("data/combined_data_VF.csv")
 df_combined <- read.csv("data/combined_data_VF2.csv")
-
-df_no_date <- df2 %>% 
-  filter(date == "" | is.na(date)) %>%
-  select(page_number) %>%
-  distinct() %>>
-  as.vector()
 
 df_no_date2 <- df_combined %>% 
   filter(date == "" | is.na(date)) %>%
   select(page_number) %>%
   distinct()
+
 #write vector to txt file
-write.table(df_no_date, "data/df_no_date.txt", row.names = FALSE, col.names = FALSE)
 write.table(df_no_date2, "data/df_no_date2.txt", row.names = FALSE, col.names = FALSE)
 
 
 ```
 
-```{python}
-#| label: gather-data-python
 
-import polars as pl
-import glob
-import os
-
-def combine_csv_files(folder_path):
-    """
-    Combine all CSV files in a given folder into a single DataFrame using Polars.
-    Columns that are not present in all CSV files are filled with None.
-    
-    :param folder_path: Path to the folder containing CSV files.
-    :return: Combined DataFrame.
-    """
-    # Création du chemin complet pour le motif de recherche des fichiers CSV
-    search_pattern = os.path.join(folder_path, "csv_page_*.csv")
-
-    # Recherche de tous les fichiers CSV correspondants
-    csv_files = glob.glob(search_pattern)
-
-    # Lecture de tous les fichiers CSV
-    dfs = [pl.read_csv(file) for file in csv_files]
-
-    # Combinaison des DataFrames avec la méthode concat et how='diagonal'
-    combined_df = pl.concat(dfs, how='diagonal')
-
-    return combined_df
-
-# Chemin du dossier contenant les fichiers CSV
-folder_path = "data/csv_page"
-
-# Exécution de la fonction et stockage du DataFrame combiné
-combined_dataframe = combine_csv_files(folder_path)
-
-```
-
-```{r}
-#| label: gather-data-r
-
-# Lister tous les fichiers CSV dans le répertoire spécifié
-list_of_csv_files <- list.files("data/csv_page") %>% sort()
-list_of_csv_files[1:5]
-
-# Parcourir chaque fichier dans la liste
-for (file in list_of_csv_files) {
-  file_path <- file.path("data/csv_page", file)
-  if (!file.exists(file_path)) {
-    print(paste(file_path, "does not exist"))
-  }
-}
-
-```
-
-```{python}
-
-if (file.exists("data/csv_page/csv_page_10004.csv")) {
-  print("does exist")
-} else {
-  print("does not exist")
-}
-```
