@@ -1,5 +1,10 @@
-
+# Ignore CSV, R history, and RAR files
 *.csv
-*.html
 .Rhistory
 *.rar
+
+# Ignore HTML files globally
+*.html
+
+# Include HTML files in the root directory
+!/*.html
