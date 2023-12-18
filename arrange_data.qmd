@@ -9,7 +9,7 @@ author:
       name: "Paris Dauphine - PSL"
       city: Paris
       state: France
-date : "14/12/2023"
+date : "18/12/2023"
 toc: true
 number-sections: true
 number-depth: 10
@@ -39,14 +39,27 @@ reference-location: margin
 ---
 
 ```{r}
-#| label: data-libraries-r
-#| echo: false
-#| message: false
-#| eval: true
+#| label: libraries-r
 
 library(tidyverse)
 library(data.table)
 library(microbenchmark)
+library(DT)
+library(ggthemes)
+library(ggthemr)
+library(flextable)
+```
+
+```{r}
+#| label: data-loading-r
+
+ggthemr('dust')
+
+df_combined <- fread("data/combined_data_VF2.csv") %>%
+  mutate_all(~ifelse(. == "", NA, .)) %>%
+  mutate(page_number = as.integer(page_number)) %>%
+  arrange(page_number)
+
 ```
 
 ## French public discourse collection
@@ -57,7 +70,24 @@ La Collection des discours publics, which translates to "The Collection of Publi
 
 [Link to website](https://www.vie-publique.fr/discours?page=0 "French public discourse")
 
+## Scraping process
+
+The initial attempt was made using the **`rvest`** package, which I had previous experience with. However, I encountered an issue with undetected JavaScript that hindered the scraping process. Consequently, I switched to simulating normal human browsing behavior using Selenium, a technique I learnt in a [PSL](https://psl.eu/ "PSL website") course last year, taught by [Bruno Chaves](https://acss-dig.psl.eu/fr/equipe/bruno-chaves-ferreira "Bruno Chaves ACSS website").
+
+This approach proved to be very effective. I also happened to have a sample code using this module, so I decided to proceed with it. In the GitHub repository, the **`scrapping_python.ipynb`** notebook was used to scrape various pages of the website.
+
+As this process was somewhat time-consuming and too long to bear, I explored different methods to accelerate the process and successfully implemented multithreading using Python's [concurrent.futures module](#0), significantly enhancing the speed of the scraping operation.
+
+The relevant code can be found in the **`multithreading_scrapping.ipynb`** notebook.
+
 ## Verify missing dates
+
+Put the page numbers where the date is missing into a .txt file, each on a new line.
+
+The challenge is that the CSS selector varies from page to page; sometimes, there is a "time" tag, sometimes, just a HTML `<p>` paragraph.
+
+We do this to loop through them and retrieve the dates.
+
 ```{r}
 #| label: verify-missing-dates
 
@@ -73,6 +103,12 @@ write.table(df_no_date2, "data/df_no_date2.txt", row.names = FALSE, col.names = 
 
 ## Verify missing texts
 
+Place the page numbers where the text is missing into a `.txt file` in the `data\` folder, each on a new line.
+
+The challenge is that the CSS selector varies from page to page; sometimes it's an 'integral text', other times it's a 'resume text'.
+
+We do this to loop through the pages and retrieve the texts.
+
 ```{r}
 #| label: verify-missing-texts
 
@@ -87,36 +123,118 @@ write.table(df_no_text, "data/df_no_text.txt", row.names = FALSE, col.names = FA
 
 ```
 
-## Quick benchmark
+## Remove false keywords
+
+When I wrote the first scrapping script, I browsed a few pages to find similarities and difference between the pages. I noticed that it was easy to get the keywords with the `fr-tag fr-tag--green-emeraude` class.
+
+The problem is that this class is also used for the tag of each discourse. I've also noticed that multiple tags can be assigned to a single discourse. **I only kept the first one so this can be modified for future work**.
+
+What is left to do now is removing the keywords that are actually tags, which means removing the first keyword of each discourse and the ";" that follows.
 
 ```{r}
-#| label: quick-benchmark
+#| label: remove-false-keywords
 
+df_combined <- df_combined %>%
+  mutate(keywords = stringr::str_replace(keywords, "^[^;]+\\s*;\\s*", ""))
 
-benchmark_results <- microbenchmark(
-  df_combined <- fread("data/combined_data_VF2.csv"),
-  df_combined <- fread("data/combined_data_VF2.csv", nThread = 6),
-  times = 5
-)
+write_csv(df_combined, "data/combined_data_final_version.csv")
 
-autoplot(benchmark_results)
 ```
 
+## Benchmarks for reading csv files
+
+### fread vs read.csv vs read_csv vs vroom
+
+I processed a total of 12,348 CSV files, which were read and concatenated into a single large CSV file using the [Polars library in Python](https://pola.rs/ "polars library in Python").
+
+The primary objective here is to evaluate the efficiency of various libraries in R in terms of the time they take to read this consolidated CSV file, which is approximately 1.2 GB in size.
+
+This will help me for future work.
 
 ```{r}
 #| label: quick-benchmark2
-
-#| label: quick-benchmark
-
+#| column: screen-inset-right
+#| fig-width: 13
 
 benchmark_results <- microbenchmark(
-  df_combined <- read_csv("data/combined_data_VF2.csv"),
-  df_combined <- fread("data/combined_data_VF2.csv", nThread = 12),
+  df_combined <- fread("data/combined_data_final_version.csv"),
+  df_combined <- read.csv("data/combined_data_final_version.csv"),
+  df_combined <- read_csv("data/combined_data_final_version.csv"),
+  df_combined <- vroom::vroom("data/combined_data_final_version.csv"),
   times = 5
 )
+
+benchmark_results <- benchmark_results %>%
+  mutate(time = time / 1e9)
+
+ggplot(benchmark_results) +
+  aes(x = expr, y = time, fill = expr) +
+  geom_violin(adjust = 0.7, scale = "width") +
+  coord_flip() +
+  theme(legend.position = "none")+
+  ylab("Time (s)")+
+  xlab("")
+```
+
+It seems like the [vroom package](https://www.tidyverse.org/blog/2019/05/vroom-1-0-0/ "vroom package website") is the fastest. However, I had some problems with the "media" column with vroom, so I'll stick with `fread`.
+
+By the way, the results of the [microbenchmark](https://www.rdocumentation.org/packages/microbenchmark/versions/1.4.10/topics/microbenchmark "microbenchmark r package website") package are as follows:\
+
+```{r}
+#| label: microbenchmark-results
+#| column: screen-inset-right
+#| tbl-cap: Microbenchmark results
+
+summary(benchmark_results) %>%
+  as.data.frame() %>%
+  mutate(across(-1, ~round(.,2))) %>%
+  flextable::flextable() %>%
+  flextable::theme_box() %>%
+  flextable::autofit()
+```
+
+### Change number of threads fread
+
+```{r}
+#| label: quick-benchmark
+#| column: screen-inset-right
+#| fig-width: 13
+#| fig-height: 6
+
+#load library to detect number of cores
+library(parallel)
+cat("Number of cores:", detectCores())
+
+benchmark_results <- microbenchmark(
+  df_combined <- fread("data/combined_data_final_version.csv"),
+  df_combined <- fread("data/combined_data_final_version.csv", nThread = 22),
+  df_combined <- fread("data/combined_data_final_version.csv", nThread = 20),
+  df_combined <- fread("data/combined_data_final_version.csv", nThread = 18),
+  df_combined <- fread("data/combined_data_final_version.csv", nThread = 16),
+  df_combined <- fread("data/combined_data_final_version.csv", nThread = 14),
+  df_combined <- fread("data/combined_data_final_version.csv", nThread = 12),
+  df_combined <- fread("data/combined_data_final_version.csv", nThread = 10),
+  df_combined <- fread("data/combined_data_final_version.csv", nThread = 8),
+  df_combined <- fread("data/combined_data_final_version.csv", nThread = 6),
+  df_combined <- fread("data/combined_data_final_version.csv", nThread = 4),
+  df_combined <- fread("data/combined_data_final_version.csv", nThread = 2),
+  times = 5
+)
+
+#benchmark_results <- benchmark_results %>%
+  #mutate(time = time / 1e9)
+
+
+#ggplot(benchmark_results) +
+  #aes(x = expr, y = time, fill = expr) +
+  #geom_violin(adjust = 0.7, scale = "width") +
+  #coord_flip() +
+  #theme(legend.position = "none")+
+  #ylab("Time (s)")+
+  #xlab("")+
+  #theme_minimal()
 
 autoplot(benchmark_results)
 ```
 
-
-
+In conclusion, it appears that specifying the number of threads while using the **`fread`** function is not particularly necessary for a file this size.
