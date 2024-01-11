@@ -9,7 +9,7 @@ author:
       name: "Paris Dauphine - PSL"
       city: Paris
       state: France
-date : "18/12/2023"
+date : "12/18/2023"
 toc: true
 number-sections: true
 number-depth: 10
