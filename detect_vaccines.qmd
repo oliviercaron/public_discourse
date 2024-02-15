@@ -1,0 +1,60 @@
+---
+title: "Just a little script for COVID19 tweets"
+title-block-banner: true
+author: "Olivier CARON"
+institute: "Paris Dauphine - PSL"
+date : "today"
+toc: true
+number-sections: true
+number-depth: 2
+format: html
+editor: visual
+execute:
+  echo: true
+  warning: false
+  message: false
+fig-align: "center"
+code-fold: true
+---
+
+```{r}
+# Load necessary libraries
+library(data.table)
+library(arrow)
+library(tidyverse)
+
+# Start timing
+start_time <- Sys.time()
+
+# Extended list of vaccine brands with variations
+marques_vaccins <- c("Pfizer|Pfizzer|Fizer|Phizer", "Moderna|Modrna|Maderna", "AstraZeneca|Astra Zeneca|Astra|Zeneca|AstroZenika", "Johnson & Johnson|J&J|Johnson and Johnson|Jonson")
+# Create search pattern
+motif_recherche <- str_c(marques_vaccins, collapse = "|")
+
+# Final data structure
+final <- data.table()
+
+# List all .csv files in the current directory
+fichiers_csv <- list.files(pattern = "\\.csv$")
+
+# Load, filter, and append data
+for(fichier in fichiers_csv) {
+  # Load data with variable row lengths handling
+  dt <- fread(fichier, fill = TRUE)
+  
+  # Assuming 'text' is the name of the column containing the text to filter
+  # Make sure 'text' is the actual name of your column
+  dt_filtre <- dt[grepl(motif_recherche, dt[["text"]], ignore.case = TRUE)]
+  
+  # Merge 'dt_filtre' into 'final'
+  final <- rbindlist(list(final, dt_filtre), use.names = TRUE, fill = TRUE)
+}
+
+# Save the final data table to CSV
+write_csv(final, "donnees_finales.csv", row.names = FALSE)
+
+# End timing
+end_time <- Sys.time()
+end_time - start_time
+```
+
