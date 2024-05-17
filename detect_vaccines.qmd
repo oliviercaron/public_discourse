@@ -57,4 +57,3 @@ write_csv(final, "donnees_finales.csv", row.names = FALSE)
 end_time <- Sys.time()
 end_time - start_time
 ```
-
